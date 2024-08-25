@@ -1,0 +1,37 @@
+name: Deploy Google Apps Script
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on pushes to the main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Clasp globally
+        run: npm install -g @google/clasp
+
+      - name: Setup Clasp Authentication
+        env:
+          CLASP_CLIENT_ID: ${{ secrets.CLASP_CLIENT_ID }}
+          CLASP_CLIENT_SECRET: ${{ secrets.CLASP_CLIENT_SECRET }}
+          CLASP_REFRESH_TOKEN: ${{ secrets.CLASP_REFRESH_TOKEN }}
+        run: |
+          echo '{"token": {"client_id": "'$CLASP_CLIENT_ID'", "client_secret": "'$CLASP_CLIENT_SECRET'", "refresh_token": "'$CLASP_REFRESH_TOKEN'", "type": "authorized_user"}}' > ~/.clasprc.json
+
+      - name: Push to Google Apps Script
+        env:
+          CLASP_SCRIPT_ID: ${{ secrets.CLASP_SCRIPT_ID }}
+        run: |
+          echo '{"scriptId": "'$CLASP_SCRIPT_ID'"}' > .clasp.json
+          clasp push

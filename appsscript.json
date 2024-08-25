@@ -1,0 +1,16 @@
+{
+  "timeZone": "Australia/Sydney",
+  "dependencies": {
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "Date",
+      "functionName": "Date"
+    }, {
+      "menuName": "getHeadings",
+      "functionName": "getHeadings"
+    }]
+  }
+}
