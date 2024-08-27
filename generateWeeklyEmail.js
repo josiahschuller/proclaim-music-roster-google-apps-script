@@ -119,11 +119,34 @@ function songText(songName, rowIndex) {
   Output (String): message text for the song
   */
   let song = getCell(ROSTER_SHEET, rowIndex, getColumnIndex(ROSTER_VALUES, songName));
-  if (song !== "") {
-    return `\n- ${song} (Spotify: ${shorten_link(getSpotifySong(song))}, chord sheet: ${shorten_link(getChordSheetSong(song))}, lead sheet: ${shorten_link(getLeadSheetSong(song))})`;
-  } else {
+
+  if (song === "") {
     return "";
   }
+
+  let text = `\n- ${song} (`;
+
+  let spotifyLink = shorten_link(getSpotifySong(song))
+  if (spotifyLink !== undefined) {
+    text += `Spotify: ${spotifyLink}, `;
+  }
+
+  let chordSheetLink = shorten_link(getChordSheetSong(song));
+  if (chordSheetLink !== undefined) {
+    text += `chord sheet: ${chordSheetLink}, `;
+  }
+
+  let leadSheetLink = shorten_link(getLeadSheetSong(song));
+  if (leadSheetLink !== undefined) {
+    text += `lead sheet: ${leadSheetLink}, `;
+  }
+  
+  // Remove the last comma and space
+  text = text.slice(0, -2);
+
+  text += ")";
+
+  return text;
 }
 
 
