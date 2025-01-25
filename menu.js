@@ -2,6 +2,9 @@
 const ROSTER_SHEET = SpreadsheetApp.getActiveSheet();
 const ROSTER_VALUES = ROSTER_SHEET.getDataRange().getValues();
 
+const VOLUNTEERS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Volunteers");
+const VOLUNTEERS_VALUES = VOLUNTEERS_SHEET.getDataRange().getValues();
+
 const SONGS_SHEET = SpreadsheetApp.openById("1H0PYp0vqvONNPEbMCN-whh_rBvKkZUlWBXMH5VcVrYM").getActiveSheet();
 const SONGS_VALUES = SONGS_SHEET.getDataRange().getValues();
 
