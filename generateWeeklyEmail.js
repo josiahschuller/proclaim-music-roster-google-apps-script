@@ -1,195 +1,216 @@
 
 function test_stuff() {
-  Logger.log(generateMessage(new Date(2024, 3, 8))); // Month is indexed by 0, i.e. January is 0
+  const nextSundayDate = getNextDate(new Date(2025, 0, 8)); // Month is indexed by 0, i.e. January is 0
+  const serviceData = getServiceData(nextSundayDate);
+  const emailParams = determineEmailParams(serviceData);
+
+  Logger.log(JSON.stringify(emailParams));
 }
 
-function getColumnIndex(values, name) {
+function generateAndSendWeeklyEmail() {
+  /*
+  This is the main function that is called automatically once per week
+  */
+  try {
+    const nextSundayDate = getNextDate(new Date());
+    const serviceData = getServiceData(nextSundayDate);
+    const emailParams = determineEmailParams(serviceData);
+    sendEmail(emailParams.to, emailParams.cc, emailParams.subject, emailParams.message);
+  } catch (error) {
+    Logger.log(error.message);
+    sendEmail(
+      ["josiahschuller@gmail.com"],
+      [],
+      "Error sending weekly Proclaim music email",
+      `Error message:\n${error.message}`,
+    )
+  }
+}
+
+function getColumnIndex(values, columnName) {
   /*
   Returns the column index, given the name of the column
   Inputs:
+  - values (Array): A 2D array of values from the sheet
   - name (String): The name of the column
   Output (Number): index of the column
   */
-  let columnIndex = values[0].indexOf(name);
-  return columnIndex + 1;
+  let columnIndex = values[0].indexOf(columnName);
+  if (columnIndex === -1) {
+    throw new ReferenceError("No column with the name '" + columnName + "' found");
+  }
+  return columnIndex;
+}
+
+function getIndexForValue(values, columnName, value) {
+  /*
+  Returns the row index of the given value in the given column
+  Inputs:
+    - values (Array): A 2D array of values from a column in the sheet.
+    - columnName (String): Name of the column containing the value
+    - value (Any): Value in the column
+  Output (Number): index of the row
+  */
+  let matchedRowIndex = values.findIndex(row => row[getColumnIndex(values, columnName)] === value);
+  if (matchedRowIndex === -1) {
+    throw new ReferenceError(`No value with the name ${value} found in column ${columnName}`);
+  } else {
+    return matchedRowIndex;
+  }
 }
 
 function areDatesEqual(date1, date2) {
+  /*
+  Returns true if the two dates are equal
+
+  Inputs:
+  - date1 (Date): first date
+  - date2 (Date): second date
+  Output (Boolean): true if the dates are equal
+  */
   return date1.getDate() === date2.getDate() &&
          date1.getMonth() === date2.getMonth() &&
          date1.getFullYear() === date2.getFullYear();
 }
 
-function getRowIndex(values, name) {
+function getSongInformation(songName) {
   /*
-    Returns the row index of the first occurrence of 'name' in a column.
-    Inputs:
-      - values (Array): A 2D array of values from a column in the sheet.
-      - name (String): The name to search for in the column.
-    Output (Number): The row index of the first occurrence of 'name', or -1 if not found.
-  */
-  for (var i = 0; i < values.length; i++) {
-    if (values[i][0] != undefined && values[i][0] instanceof Date) {
-      if (areDatesEqual(values[i][0], name)) {
-        return i + 1; // Adding 1 because array indices start at 0, but spreadsheet rows start at 1
-      }
-    }
-    else {
-      if (values[i][0] === name) {
-        return i + 1; // Adding 1 because array indices start at 0, but spreadsheet rows start at 1
-      }
-    }
-  }
-  throw new ReferenceError("No row with the name '" + name + "' found");
-}
-
-function getRowIndexSong(songChosen) {
-  /*
-  Returns the row index of the given song
+  Returns information for a song
   Inputs:
-  - song (String): the song
-  Output (Number): index of the row
+  - songName (String): the name of the song
+  Output (Object):
+    - "name": name of the song
+    - "spotifyLink": Spotify link for the song
+    - "chordChart": chord chart for the song
+    - "leadSheet": lead sheet for the song
   */
+  let songRow = SONGS_VALUES[getIndexForValue(SONGS_VALUES, "Song", songName)];
 
-  for (let row = 1; row < SONGS_VALUES.length; row++) {
-    let song = SONGS_VALUES[row][getColumnIndex(ROSTER_VALUES, "Song")];
-    
-    if (song === songChosen) {
-      return row + 1;
-    }
-  }
-  throw new ReferenceError("No song with the name '" + songChosen + "' found");
+  return {
+    name: songName,
+    spotifyLink: shorten_link(songRow[getColumnIndex(SONGS_VALUES, "Spotify")]),
+    chordChart: shorten_link(songRow[getColumnIndex(SONGS_VALUES, "Chord chart")]),
+    leadSheet: shorten_link(songRow[getColumnIndex(SONGS_VALUES, "Lead sheet")]),
+  };
 }
 
-function getSpotifySong(songChosen) {
+function getNextDate(reference_date) {
   /*
-  Returns the Spotify link of a given song
-  Inputs:
-  - songChosen (String): the name of the song
-  Output (String): Spotify link to the song
-  */
-  return SONGS_SHEET.getRange(getRowIndexSong(songChosen), getColumnIndex(SONGS_VALUES, "Spotify")).getValue();
-}
-
-function getChordSheetSong(songChosen) {
-  /*
-  Returns a link to the chord sheet of a given song
-  Inputs:
-  - songChosen (String): the name of the song
-  Output (String): link to the chord sheet of the song
-  */
-  return SONGS_SHEET.getRange(getRowIndexSong(songChosen), getColumnIndex(SONGS_VALUES, "Chord chart")).getValue();
-}
-
-function getLeadSheetSong(songChosen) {
-  /*
-  Returns a link to the lead sheet of a given song
-  Inputs:
-  - songChosen (String): the name of the song
-  Output (String): link to the lead sheet of the song
-  */
-  return SONGS_SHEET.getRange(getRowIndexSong(songChosen), getColumnIndex(SONGS_VALUES, "Lead sheet")).getValue();
-}
-
-function getRowIndexNextSunday(reference_date = new Date()) {
-  /*
-  Returns the row index of the first date that is greater than today.
+  Returns the date of the first date that is greater than today.
   That is, it finds the row index for the next Sunday
   Inputs:
-  - OPTIONAL: reference_date (Date): the date before the next Sunday. Default is today's date
-  Output (Number): index of the row
+  - reference_date (Date): the date before the next Sunday.
+  Output (Date): Date object of the next date
   */
   for (let row = 1; row < ROSTER_VALUES.length; row++) {
-    let date = ROSTER_VALUES[row][getColumnIndex(ROSTER_VALUES, "Date") - 1];
+    let date = ROSTER_VALUES[row][getColumnIndex(ROSTER_VALUES, "Date")];
     
     if (new Date(date) > reference_date) {
       // If the date is a later date than today, then return this date
-      return row + 1;
+      return date;
     }
   }
   throw new ReferenceError("No date later than today found")
 }
 
-function songText(songName, rowIndex) {
+function getServiceData(date) {
   /*
-  Generates message text for a song from the given song name and date
+  Gets the data for one week.
   Inputs:
-  - songName (String): the name of the song
-  - rowIndex (Number): Index of the row
-  Output (String): message text for the song
+  - date (Date): the date of the service to get data for.
+  Output (Object):
+    - "date": service date
+    - "songs": list of information objects for each song
+    - "musicians": object, where the keys are roles and the values are lists of volunteer names
   */
-  let song = getCell(ROSTER_SHEET, rowIndex, getColumnIndex(ROSTER_VALUES, songName));
+  let relevantRowIndex = getIndexForValue(ROSTER_VALUES, "Date", date);
+  let relevantRow = ROSTER_VALUES[relevantRowIndex];
 
-  if (song === "") {
-    return "";
+  let musicians = {};
+
+  ["Singers", "Keys", "Guitar"].forEach(role => {
+    let roleMusiciansStr = relevantRow[getColumnIndex(ROSTER_VALUES, role)];
+    if (roleMusiciansStr === "") {
+      return;
+    }
+    let roleMusicians = roleMusiciansStr.split(", ");
+
+    roleMusicians.forEach(muso => {
+      if (role in musicians) {
+        musicians[role].push(muso);
+      } else {
+        musicians[role] = [muso];
+      }
+    });
+  });
+
+  let otherMusiciansStr = relevantRow[getColumnIndex(ROSTER_VALUES, "Other")]
+  if (otherMusiciansStr !== "") {
+    let otherMusicians = otherMusiciansStr.split(", ");
+    // Assumes that other musos are in the form of "Role1: Name1, Role2: Name2, ..."
+    otherMusicians.forEach(roleMuso => {
+      let [role, muso] = roleMuso.split(": ");
+      if (role in musicians) {
+        musicians[role].push(muso);
+      } else {
+        musicians[role] = [muso];
+      }
+    });
   }
 
-  let text = `\n- ${song} (`;
+  let songs = [];
+  ["Song 1", "Song 2", "Song 3", "Song 4", "Song 5"].forEach(songColumn => {
+    let songName = relevantRow[getColumnIndex(ROSTER_VALUES, songColumn)];
+    if (!songName) {
+      return;
+    }
+    songs.push(getSongInformation(relevantRow[getColumnIndex(ROSTER_VALUES, songColumn)]))
+  })
 
-  let spotifyLink = shorten_link(getSpotifySong(song))
-  if (spotifyLink !== undefined) {
-    text += `Spotify: ${spotifyLink}, `;
+  return {
+    date: date,
+    songs: songs,
+    musicians: musicians,
   }
-
-  let chordSheetLink = shorten_link(getChordSheetSong(song));
-  if (chordSheetLink !== undefined) {
-    text += `chord sheet: ${chordSheetLink}, `;
-  }
-
-  let leadSheetLink = shorten_link(getLeadSheetSong(song));
-  if (leadSheetLink !== undefined) {
-    text += `lead sheet: ${leadSheetLink}, `;
-  }
-  
-  // Remove the last comma and space
-  text = text.slice(0, -2);
-
-  text += ")";
-
-  return text;
 }
 
-
-function generateMessage(date = new Date()) {
+function generateMessage(serviceData) {
   /*
   Writes the contents of a message to be sent to the music team.
   Inputs:
-  - OPTIONAL: date (Date): the date before the next Sunday. Default is today's date
+  - serviceData (Object): service data containing the following:
+    - "date": service date
+    - "songs": list of information objects for each song
+    - "musicians": object, where the keys are roles and the values are lists of volunteer names
   Output (String): The contents of the message
   */
 
-  let relevantRow = getRowIndexNextSunday(date);
+  const openingStatements = [
+    "Thanks for volunteering your talents to serve on the band this week.",
+    "Thanks for volunteering to serve on the band this week.",
+    "Thanks for serving the church by being on the band this week.",
+    "Thanks in advance for leading the church in worship through song this week.",
+    "Thanks in advance for all the time and talents you put into serving this week.",
+  ];
+
+  const randomOpeningStatement = openingStatements[Math.floor(Math.random() * openingStatements.length)];
 
   let output = ""
   output += 
   `Hi all,\
-  \n\nThanks for volunteering your talents to serve on the band this week.\
-  \n\nThe team:\
-  \nSingers: ${getCell(ROSTER_SHEET, relevantRow, getColumnIndex(ROSTER_VALUES, "Singers"))}`;
-  let keys = getCell(ROSTER_SHEET, relevantRow, getColumnIndex(ROSTER_VALUES, "Keys"));
-  if (keys != "") {
-    output += `\nKeys: ${keys}`;
-  }
-  let guitar = getCell(ROSTER_SHEET, relevantRow, getColumnIndex(ROSTER_VALUES, "Guitar"));
-  if (guitar != "") {
-    output += `\nGuitar: ${guitar}`;
-  }
-  let other = getCell(ROSTER_SHEET, relevantRow, getColumnIndex(ROSTER_VALUES, "Other"));
-  if (other != "") {
-    output += `\nOther: ${other}`;
-  }
+  \n\n${randomOpeningStatement}\
+  \n\nThe team:`;
+  output += Object.entries(serviceData.musicians).map(([role, musos]) => `\n${role}: ${musos.join(", ")}`);
+
 
   output += '\n\nThe songs (give them a good listen before the practice!):';
-  output += songText("Song 1", relevantRow);
-  output += songText("Song 2", relevantRow);
-  output += songText("Song 3", relevantRow);
-  output += songText("Song 4", relevantRow);
-  output += songText("Song 5", relevantRow);
+  output += serviceData.songs.map(songInformation => 
+    `\n- ${songInformation.name} (Spotify: ${songInformation.spotifyLink}, chord sheet: ${songInformation.chordChart}, lead sheet: ${songInformation.leadSheet})`
+  );
   if (output.toUpperCase().includes("JOSIAH")) {
-    output += `\n\nWould you all be free for a practice at THIS TIME at my house (450 Middle Road, Pearcedale)? I can print sheet music for everyone.`;
+    output += `\n\nWhat time would you all be free for a practice? I'm happy to host, but happy to meet wherever works best. I can print sheet music for anyone who needs.`;
   } else {
-    output += `\n\nPlease organise a time and place to practise by replying all to this email and decide on who will print sheet music.`;
-
+    output += `\n\nPlease organise a time and place to practise by replying all to this email (and decide on who will print sheet music).`;
   }
   output += `\n\nAs usual, meet at 7:30am on Sunday for set-up and a quick run through. Let me know if you have any questions!\
   \n\nIn Christ\
@@ -198,31 +219,112 @@ function generateMessage(date = new Date()) {
   return output;
 }
 
-/*
-Example output:
+function generateSubject(serviceData) {
+  /*
+  Writes the subject of the email.
+  Inputs:
+  - serviceData (Object): service data containing the following:
+    - "date": service date
+    - "songs": list of information objects for each song
+    - "musicians": object, where the keys are roles and the values are lists of volunteer names
+  Output (String): The subject for the email
+  */
+  const dateString = (new Date(serviceData.date)).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return `Proclaim Music ${dateString}`;
+}
 
-Hi all,  
+function getEmailAddresses(volunteerName) {
+  /*
+  Get the email address of a volunteer (and of their parent if listed)
+  Inputs:
+  - volunteerName (String): name of the volunteer
+  Output (Array): array containing email address of volunteer and optionally of their parent
+  */
+  const volunteerRowIndex = getIndexForValue(VOLUNTEERS_VALUES, "Name", volunteerName);
+  const volunteerEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex]["Email Address"];
+  if (!volunteerEmailAddress) {
+    throw new ReferenceError(`Volunteer ${volunteerName} has no email address listed!`);
+  }
+  const emailAddresses = [volunteerEmailAddress];
+  const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex]["Parent Email Address (if under 18)"];
+  if (parentEmailAddress !== "") {
+    emailAddresses.push(parentEmailAddress);
+  }
+  
+  return emailAddresses;
+}
 
-Thanks for volunteering your talents to serve on the band this week.  
+function determineEmailParams(serviceData) {
+  /*
+  Determines parameters for the weekly email to send
+  Inputs:
+  - serviceData (Object): data for the service to send email regarding
+  Output (Object):
+    - to (Array): email addresses to send email to
+    - cc (Array): email addresses to carbon copy
+    - subject (String): subject of the email
+    - message (String): message of the email
+  */
+  const volunteers = [...new Set(
+    Object.entries(serviceData.musicians).map(
+        ([role, names]) => names
+      ).flat()
+    )];
 
-The team:  
-Singers: Paul, Owen, Lauren
-Keys: Lauren
-Other: Caleb
+  const to = [];
+  const cc = [];
 
-The songs (give them a good listen before the practice!):
-- This Is The Day (Spotify: https://spoti.fi/3pZ0egH, chord sheet: https://bit.ly/42NZolj, lead sheet: https://bit.ly/3Y7fy7Y)
-- How Deep the Father's Love For Us (Spotify: https://spoti.fi/43iN6Bs, chord sheet: https://bit.ly/3Ovu5HK, lead sheet: https://bit.ly/3Q4JDTD)
-- Look And See (Spotify: https://spoti.fi/3R9VM8n, chord sheet: https://bit.ly/3Om5CnD, lead sheet: https://bit.ly/3Opi99N)
-- This Life I Live (Spotify: https://spoti.fi/3LB9sbs, chord sheet: https://bit.ly/3LUl6yD, lead sheet: https://bit.ly/3Q3v8PT)
-- In Christ Alone (Spotify: https://spoti.fi/3xkGl3P, chord sheet: https://bit.ly/3K4EdVp, lead sheet: https://bit.ly/3Op5wLX)
+  // Add Reece to cc
+  const reeceEmailAddress = VOLUNTEERS_VALUES[getIndexForValue(VOLUNTEERS_VALUES, "Name", "Reece")][getColumnIndex(VOLUNTEERS_VALUES, "Email Address")];
+  if (!reeceEmailAddress) {
+    throw new ReferenceError(`Reece has no email address listed!`);
+  }
+  cc.push(reeceEmailAddress);
 
-Please organise a time and place to practise by replying all to this email and decide on who will print sheet music. After the practice, please email Elise with the song structures (so she can put the slides together).
-Would you all be free on THIS TIME at my house (10 Dakota Street, Officer)? I can print sheet music for everyone.
+  // Add volunteers (and optionally their parents)
+  volunteers.forEach(volunteerName => {
+    const volunteerRowIndex = getIndexForValue(VOLUNTEERS_VALUES, "Name", volunteerName);
+    const volunteerEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Email Address")];
+    if (!volunteerEmailAddress) {
+      throw new ReferenceError(`Volunteer ${volunteerName} has no email address listed!`);
+    }
+    to.push(volunteerEmailAddress);
+    const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Parent Email Address (if under 18)")];
+    if (parentEmailAddress !== "") {
+      cc.push(parentEmailAddress);
+    }
+  });
 
-As usual, meet at 7:30am on Sunday for set-up and a quick run through. Let me know if you have any questions!  
+  return {
+    to: to,
+    cc: cc,
+    subject: generateSubject(serviceData),
+    message: generateMessage(serviceData),
+  }
+}
 
-In Christ  
-*/
-
+function sendEmail(to, cc, subject, message) {
+  /*
+  Send email.
+  Inputs:
+  - to (Array): email addresses to send email to
+  - cc (Array): email addresses to carbon copy
+  - subject (String): subject of the email
+  - message (String): message of the email
+  */
+  GmailApp.sendEmail(
+    to.join(", "),
+    subject,
+    message,
+    {
+      cc: cc.join(", "),
+      name: "Josiah Schuller",
+    }
+  );
+  Logger.log(`Email with subject "${subject}" sent successfully! `);
+}
 
