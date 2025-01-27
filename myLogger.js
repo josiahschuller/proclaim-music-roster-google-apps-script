@@ -6,6 +6,7 @@ class MyLogger {
 
   log(message) {
     this.logs += `\n${message}`;
+    Logger.log(message);
   }
 
   getLogs() {

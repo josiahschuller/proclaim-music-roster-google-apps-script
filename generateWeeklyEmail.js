@@ -51,7 +51,14 @@ function getIndexForValue(values, columnName, value) {
     - value (Any): Value in the column
   Output (Number): index of the row
   */
-  let matchedRowIndex = values.findIndex(row => row[getColumnIndex(values, columnName)] === value);
+  let equalityFunction;
+  if (columnName === "Date") {
+    equalityFunction = areDatesEqual;
+  } else {
+    equalityFunction = (x, y) => x === y;
+  }
+
+  let matchedRowIndex = values.findIndex(row => equalityFunction(row[getColumnIndex(values, columnName)], value));
   if (matchedRowIndex === -1) {
     throw new ReferenceError(`No value with the name ${value} found in column ${columnName}`);
   } else {
@@ -64,13 +71,15 @@ function areDatesEqual(date1, date2) {
   Returns true if the two dates are equal
 
   Inputs:
-  - date1 (Date): first date
-  - date2 (Date): second date
+  - date1 (Date/String): first date
+  - date2 (Date/String): second date
   Output (Boolean): true if the dates are equal
   */
-  return date1.getDate() === date2.getDate() &&
-         date1.getMonth() === date2.getMonth() &&
-         date1.getFullYear() === date2.getFullYear();
+  const date1Date = new Date(date1);
+  const date2Date = new Date(date2);
+  return date1Date.getDate() === date2Date.getDate() &&
+         date1Date.getMonth() === date2Date.getMonth() &&
+         date1Date.getFullYear() === date2Date.getFullYear();
 }
 
 function getSongInformation(songName) {

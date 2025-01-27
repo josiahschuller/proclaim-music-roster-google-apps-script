@@ -2,7 +2,7 @@
 
 function test() {
   // Update the last time column for all songs for a particular Sunday
-  const SUNDAY = "11/2/2024"
+  const SUNDAY = "02/02/2025"
   updateTimesPerTimestamp(SUNDAY);
 }
 
@@ -10,30 +10,31 @@ function getCell(sheet, row, column) {
   /*
   Gets a cell in a sheet
   */
-  return sheet.getRange(row, column).getValue();
+  const values = sheet.getDataRange().getValues();
+  return values[row][column];
 }
 
 function setCell(sheet, row, column, value) {
   /*
   Sets a cell in a sheet with the given value
   */
-  sheet.getRange(row, column).setValue(value);
+  sheet.getRange(row + 1, column + 1).setValue(value);
 }
 
 function getLastTimeSung(song) {
   /*
   Gets the last time sung for a given song
   */
-  let songRow = getRowIndexSong(song);
+  let songRow = getIndexForValue(SONGS_VALUES, "Song", song);
   let lastTimeSungCol = getColumnIndex(SONGS_VALUES, "Last time sung");
-  return SONGS_SHEET.getRange(songRow, lastTimeSungCol).getValue();
+  return getCell(SONGS_SHEET, songRow, lastTimeSungCol);
 }
 
 function setLastTimeSung(song, lastTimeSung) {
   /*
   Updates the last time sung for a given song
   */
-  let songRow = getRowIndexSong(song);
+  let songRow = getIndexForValue(SONGS_VALUES, "Song", song);
   let lastTimeSungCol = getColumnIndex(SONGS_VALUES, "Last time sung");
 
   setCell(SONGS_SHEET, songRow, lastTimeSungCol, lastTimeSung);
@@ -53,32 +54,37 @@ function updateTimesPerTimestamp(timestamp) {
   */
   logger = new MyLogger();
 
-  let timestampRow = getRowIndex(ROSTER_VALUES, convertStringToDate(timestamp));
+  let timestampRow = getIndexForValue(ROSTER_VALUES, "Date", timestamp);
 
   const SONG_COLUMNS = ["Song 1", "Song 2", "Song 3", "Song 4", "Song 5"];
 
-  for (let i = 0; i < SONG_COLUMNS.length; i++) {
-    let columnIndex = getColumnIndex(ROSTER_VALUES, SONG_COLUMNS[i]);
+  SONG_COLUMNS.forEach(songColumn => {
+    let columnIndex = getColumnIndex(ROSTER_VALUES, songColumn);
     let songName = getCell(ROSTER_SHEET, timestampRow, columnIndex);
-    if (songName !== "" && songName !== null && songName !== undefined) {
-      let previousLastTimeSung;
-      try {
-        previousLastTimeSung = getLastTimeSung(songName);
-      } catch (error) {
-        logger.log(error);
-        continue;
-      }
-      
-      setLastTimeSung(songName, timestamp);
-      let newLastTimeSung = getLastTimeSung(songName);
-
-      if (areDatesEqual(previousLastTimeSung, newLastTimeSung)) {
-        logger.log(`Last time sung column for ${songName} is already up to date!`);
-      } else {
-        logger.log(`Updated the last time sung column for ${songName} from ${previousLastTimeSung.toLocaleDateString()} to ${newLastTimeSung.toLocaleDateString()}`);
-      }
+    if (!songName) {
+      return;
     }
-  }
+
+    // Get the current last time sung timestamp
+    let previousLastTimeSung;
+    try {
+      previousLastTimeSung = getLastTimeSung(songName);
+    } catch (error) {
+      logger.log(error);
+      return;
+    }
+    
+    // Set the timestamp
+    setLastTimeSung(songName, timestamp);
+
+    // Log message
+    let newLastTimeSung = getLastTimeSung(songName);
+    if (areDatesEqual(previousLastTimeSung, newLastTimeSung)) {
+      logger.log(`Last time sung column for ${songName} is already up to date!`);
+    } else {
+      logger.log(`Updated the last time sung column for ${songName} from ${previousLastTimeSung.toLocaleDateString()} to ${newLastTimeSung.toLocaleDateString()}`);
+    }
+  });
 
   return logger.getLogs();
 }
