@@ -32,7 +32,7 @@ function updateLastTimeSung() {
   let button = result.getSelectedButton();
   let text = result.getResponseText();
   if (button == ui.Button.OK) {
-    let logs = updateTimesPerTimestamp(text);
+    let logs = updateTimesPerTimestamp(convertStringToDate(text));
     ui.alert(logs);
   }
 }

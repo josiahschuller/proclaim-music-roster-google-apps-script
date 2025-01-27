@@ -2,8 +2,8 @@
 
 function test() {
   // Update the last time column for all songs for a particular Sunday
-  const SUNDAY = "02/02/2025"
-  updateTimesPerTimestamp(SUNDAY);
+  const SUNDAY = "09/02/2025"
+  updateTimesPerTimestamp(convertStringToDate(SUNDAY));
 }
 
 function getCell(sheet, row, column) {
@@ -51,6 +51,9 @@ function convertStringToDate(dateString) {
 function updateTimesPerTimestamp(timestamp) {
   /*
   Updates the last time sung for all songs played on a timestamp
+
+  Inputs:
+  - timestamp (Date): Timestamp to set last time sung to
   */
   logger = new MyLogger();
 
@@ -64,25 +67,20 @@ function updateTimesPerTimestamp(timestamp) {
     if (!songName) {
       return;
     }
-
-    // Get the current last time sung timestamp
-    let previousLastTimeSung;
-    try {
-      previousLastTimeSung = getLastTimeSung(songName);
-    } catch (error) {
-      logger.log(error);
-      return;
-    }
+    
+    // Get current last time sung timestamp for logging (but before it is overwritten)
+    let previousLastTimeSung = getLastTimeSung(songName);
     
     // Set the timestamp
     setLastTimeSung(songName, timestamp);
 
     // Log message
-    let newLastTimeSung = getLastTimeSung(songName);
-    if (areDatesEqual(previousLastTimeSung, newLastTimeSung)) {
+    if (!previousLastTimeSung) {
+      logger.log(`Set the last time sung column for ${songName} to ${timestamp.toLocaleDateString()}`);
+    } else if (areDatesEqual(previousLastTimeSung, timestamp)) {
       logger.log(`Last time sung column for ${songName} is already up to date!`);
     } else {
-      logger.log(`Updated the last time sung column for ${songName} from ${previousLastTimeSung.toLocaleDateString()} to ${newLastTimeSung.toLocaleDateString()}`);
+      logger.log(`Updated the last time sung column for ${songName} from ${previousLastTimeSung.toLocaleDateString()} to ${timestamp.toLocaleDateString()}`);
     }
   });
 
