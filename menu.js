@@ -19,7 +19,7 @@ function onOpen() {
 
 function generateWeeklyEmail() {
   SpreadsheetApp.getUi()
-    .alert(generateMessage());
+    .alert(generateAndSendWeeklyEmail());
 }
 
 function updateLastTimeSung() {

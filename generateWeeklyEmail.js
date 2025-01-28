@@ -16,6 +16,7 @@ function generateAndSendWeeklyEmail() {
     const serviceData = getServiceData(nextSundayDate);
     const emailParams = determineEmailParams(serviceData);
     sendEmail(emailParams.to, emailParams.cc, emailParams.subject, emailParams.message);
+    return "Sent email successfully!";
   } catch (error) {
     Logger.log(error.message);
     sendEmail(
@@ -24,6 +25,7 @@ function generateAndSendWeeklyEmail() {
       "Error sending weekly Proclaim music email",
       `Error message:\n${error.message}`,
     )
+    return error.message;
   }
 }
 
@@ -211,10 +213,21 @@ function generateMessage(serviceData) {
   \n\nThe team:`;
   output += Object.entries(serviceData.musicians).map(([role, musos]) => `\n${role}: ${musos.join(", ")}`);
 
-
   output += '\n\nThe songs (give them a good listen before the practice!):';
-  output += serviceData.songs.map(songInformation => 
-    `\n- ${songInformation.name} (Spotify: ${songInformation.spotifyLink}, chord sheet: ${songInformation.chordChart}, lead sheet: ${songInformation.leadSheet})`
+  output += serviceData.songs.map(songInformation => {
+      let songText = `\n- ${songInformation.name} (`;
+      if (songInformation.spotifyLink) {
+        songText += `Spotify: ${songInformation.spotifyLink}`;
+      }
+      if (songInformation.chordChart) {
+        songText += `Chord sheet: ${songInformation.chordChart}`;
+      }
+      if (songInformation.leadSheet) {
+        songText += `Lead sheet: ${songInformation.leadSheet}`;
+      }
+      songText += ")";
+      return songText;
+    }
   );
   if (output.toUpperCase().includes("JOSIAH")) {
     output += `\n\nWhat time would you all be free for a practice? I'm happy to host, but happy to meet wherever works best. I can print sheet music for anyone who needs.`;
