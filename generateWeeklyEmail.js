@@ -4,7 +4,9 @@ function test_stuff() {
   const serviceData = getServiceData(nextSundayDate);
   const emailParams = determineEmailParams(serviceData);
 
-  Logger.log(JSON.stringify(emailParams));
+  const emailMessage = generateMessage(serviceData);
+
+  Logger.log(emailMessage);
 }
 
 function generateAndSendWeeklyEmail() {
@@ -217,14 +219,15 @@ function generateMessage(serviceData) {
   output += serviceData.songs.map(songInformation => {
       let songText = `\n- ${songInformation.name} (`;
       if (songInformation.spotifyLink) {
-        songText += `Spotify: ${songInformation.spotifyLink}`;
+        songText += `Spotify: ${songInformation.spotifyLink}, `;
       }
       if (songInformation.chordChart) {
-        songText += `Chord sheet: ${songInformation.chordChart}`;
+        songText += `Chord sheet: ${songInformation.chordChart}, `;
       }
       if (songInformation.leadSheet) {
-        songText += `Lead sheet: ${songInformation.leadSheet}`;
+        songText += `Lead sheet: ${songInformation.leadSheet}, `;
       }
+      songText = songText.slice(0, -2);  // Remove ", " from end of the string
       songText += ")";
       return songText;
     }
