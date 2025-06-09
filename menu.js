@@ -1,5 +1,5 @@
 
-const ROSTER_SHEET = SpreadsheetApp.getActiveSheet();
+const ROSTER_SHEET = SpreadsheetApp.openById("1qDBr-f0nwSOEFflm69edVUB6ZWKEbRP-DhmaaiNlSMY").getActiveSheet();
 const ROSTER_VALUES = ROSTER_SHEET.getDataRange().getValues();
 
 const VOLUNTEERS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Volunteers");

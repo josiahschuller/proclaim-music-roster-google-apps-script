@@ -1,16 +1,24 @@
 {
   "timeZone": "Australia/Sydney",
-  "dependencies": {
-  },
+  "dependencies": {},
   "exceptionLogging": "STACKDRIVER",
   "runtimeVersion": "V8",
   "sheets": {
-    "macros": [{
-      "menuName": "Date",
-      "functionName": "Date"
-    }, {
-      "menuName": "getHeadings",
-      "functionName": "getHeadings"
-    }]
-  }
+    "macros": [
+      {
+        "menuName": "Date",
+        "functionName": "Date"
+      },
+      {
+        "menuName": "getHeadings",
+        "functionName": "getHeadings"
+      }
+    ]
+  },
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets.currentonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/gmail.compose"
+  ]
 }

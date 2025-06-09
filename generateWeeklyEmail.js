@@ -1,18 +1,24 @@
 
-function test_stuff() {
-  const nextSundayDate = getNextDate(new Date(2025, 0, 8)); // Month is indexed by 0, i.e. January is 0
+function test_weekly_email_stuff() {
+  const nextSundayDate = getNextDate(new Date(2025, 3, 19)); // Month is indexed by 0, i.e. January is 0
   const serviceData = getServiceData(nextSundayDate);
   const emailParams = determineEmailParams(serviceData);
+  Logger.log(emailParams);
 
-  const emailMessage = generateMessage(serviceData);
+  // const emailMessage = generateMessage(serviceData);
 
-  Logger.log(emailMessage);
+  // Logger.log(emailMessage);
 }
 
 function generateAndSendWeeklyEmail() {
   /*
   This is the main function that is called automatically once per week
   */
+  const today = new Date();
+  // Skip day I've already sent an email out for
+  if (today.getFullYear() === 2025 && today.getMonth() === 2 && today.getDate() === 23) {
+    return;
+  }
   try {
     const nextSundayDate = getNextDate(new Date());
     const serviceData = getServiceData(nextSundayDate);
@@ -204,6 +210,7 @@ function generateMessage(serviceData) {
     "Thanks for serving the church by being on the band this week.",
     "Thanks in advance for leading the church in worship through song this week.",
     "Thanks in advance for all the time and talents you put into serving this week.",
+    "Appreciate your work as always to serve on the band at church.",
   ];
 
   const randomOpeningStatement = openingStatements[Math.floor(Math.random() * openingStatements.length)];
@@ -212,12 +219,12 @@ function generateMessage(serviceData) {
   output += 
   `Hi all,\
   \n\n${randomOpeningStatement}\
-  \n\nThe team:`;
-  output += Object.entries(serviceData.musicians).map(([role, musos]) => `\n${role}: ${musos.join(", ")}`);
+  \n\nThe team:\n`;
+  output += Object.entries(serviceData.musicians).map(([role, musos]) => `${role}: ${musos.join(", ")}`).join("\n");
 
-  output += '\n\nThe songs (give them a good listen before the practice!):';
+  output += '\n\nThe songs (give them a good listen before the practice!):\n';
   output += serviceData.songs.map(songInformation => {
-      let songText = `\n- ${songInformation.name} (`;
+      let songText = `- ${songInformation.name} (`;
       if (songInformation.spotifyLink) {
         songText += `Spotify: ${songInformation.spotifyLink}, `;
       }
@@ -231,7 +238,7 @@ function generateMessage(serviceData) {
       songText += ")";
       return songText;
     }
-  );
+  ).join("\n");
   if (output.toUpperCase().includes("JOSIAH")) {
     output += `\n\nWhat time would you all be free for a practice? I'm happy to host, but happy to meet wherever works best. I can print sheet music for anyone who needs.`;
   } else {
@@ -319,7 +326,7 @@ function determineEmailParams(serviceData) {
     }
     to.push(volunteerEmailAddress);
     const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Parent Email Address (if under 18)")];
-    if (parentEmailAddress !== "") {
+    if (parentEmailAddress !== "" && !to.includes(parentEmailAddress)) {
       cc.push(parentEmailAddress);
     }
   });
