@@ -15,12 +15,8 @@ function generateAndSendWeeklyEmail() {
   This is the main function that is called automatically once per week
   */
   const today = new Date();
-  // Skip day I've already sent an email out for
-  if (today.getFullYear() === 2025 && today.getMonth() === 2 && today.getDate() === 23) {
-    return;
-  }
   try {
-    const nextSundayDate = getNextDate(new Date());
+    const nextSundayDate = getNextDate(today);
     const serviceData = getServiceData(nextSundayDate);
     const emailParams = determineEmailParams(serviceData);
     sendEmail(emailParams.to, emailParams.cc, emailParams.subject, emailParams.message);
@@ -359,4 +355,3 @@ function sendEmail(to, cc, subject, message) {
   );
   Logger.log(`Email with subject "${subject}" sent successfully! `);
 }
-

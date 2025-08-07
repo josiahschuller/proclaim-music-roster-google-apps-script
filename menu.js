@@ -9,12 +9,17 @@ const SONGS_SHEET = SpreadsheetApp.openById("1H0PYp0vqvONNPEbMCN-whh_rBvKkZUlWBX
 const SONGS_VALUES = SONGS_SHEET.getDataRange().getValues();
 
 function onOpen() {
-  let ui = SpreadsheetApp.getUi();
-  // Or DocumentApp or FormApp.
-  ui.createMenu('Josiah Magic')
-      .addItem('Generate weekly music email', 'generateWeeklyEmail')
-      .addItem('Update "Last time sung" values', 'updateLastTimeSung')
-      .addToUi();
+  const authorizedUsers = ["josiahschuller@gmail.com"]
+  const userEmail = Session.getActiveUser().getEmail();
+
+  // Only display menu for authorised users
+  if (authorizedUsers.includes(userEmail)) {
+    let ui = SpreadsheetApp.getUi();
+    ui.createMenu('Josiah Magic')
+        .addItem('Generate weekly music email', 'generateWeeklyEmail')
+        .addItem('Update "Last time sung" values', 'updateLastTimeSung')
+        .addToUi();
+  }
 }
 
 function generateWeeklyEmail() {
