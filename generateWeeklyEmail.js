@@ -1,13 +1,51 @@
 
 function test_weekly_email_stuff() {
-  const nextSundayDate = getNextDate(new Date(2025, 3, 19)); // Month is indexed by 0, i.e. January is 0
+  const nextSundayDate = getNextDate(new Date()); // Month is indexed by 0, i.e. January is 0
   const serviceData = getServiceData(nextSundayDate);
   const emailParams = determineEmailParams(serviceData);
-  Logger.log(emailParams);
+  // Logger.log(emailParams);
 
-  // const emailMessage = generateMessage(serviceData);
+  const emailMessage = generateMessage(serviceData);
 
-  // Logger.log(emailMessage);
+  Logger.log(emailMessage);
+}
+
+function sendEmailIfNotAlreadySent() {
+  const nextSundayDate = getNextDate(new Date());
+  if (!checkIfEmailAlreadySent(nextSundayDate)) {
+    generateAndSendWeeklyEmail();
+
+    // Add entry to "Email Sends" sheet
+    logEmailSent(nextSundayDate);
+  } else {
+    Logger.log("Already sent for this Sunday");
+  }
+}
+
+function checkIfEmailAlreadySent(nextSundayDate) {
+  const EMAIL_SENDS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Email Sends");
+  const EMAIL_SENDS_VALUES = EMAIL_SENDS_SHEET.getDataRange().getValues();
+
+  try {
+    getIndexForValue(EMAIL_SENDS_VALUES, "Date", nextSundayDate);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function logEmailSent(nextSundayDate) {
+  const EMAIL_SENDS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Email Sends");
+  
+  const TOP_ROW = 2;
+  EMAIL_SENDS_SHEET.insertRowBefore(TOP_ROW);
+
+  let rowValues = [
+    nextSundayDate,
+    new Date(),
+  ];
+
+  EMAIL_SENDS_SHEET.getRange(TOP_ROW, 1, 1, 2).setValues([rowValues]);
 }
 
 function generateAndSendWeeklyEmail() {
@@ -15,12 +53,8 @@ function generateAndSendWeeklyEmail() {
   This is the main function that is called automatically once per week
   */
   const today = new Date();
-  // Skip day I've already sent an email out for
-  if (today.getFullYear() === 2025 && today.getMonth() === 2 && today.getDate() === 23) {
-    return;
-  }
   try {
-    const nextSundayDate = getNextDate(new Date());
+    const nextSundayDate = getNextDate(today);
     const serviceData = getServiceData(nextSundayDate);
     const emailParams = determineEmailParams(serviceData);
     sendEmail(emailParams.to, emailParams.cc, emailParams.subject, emailParams.message);
@@ -359,4 +393,3 @@ function sendEmail(to, cc, subject, message) {
   );
   Logger.log(`Email with subject "${subject}" sent successfully! `);
 }
-
