@@ -36,7 +36,7 @@ function checkIfEmailAlreadySent(nextSundayDate) {
 
 function logEmailSent(nextSundayDate) {
   const EMAIL_SENDS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Email Sends");
-  
+
   const TOP_ROW = 2;
   EMAIL_SENDS_SHEET.insertRowBefore(TOP_ROW);
 
@@ -122,8 +122,8 @@ function areDatesEqual(date1, date2) {
   const date1Date = new Date(date1);
   const date2Date = new Date(date2);
   return date1Date.getDate() === date2Date.getDate() &&
-         date1Date.getMonth() === date2Date.getMonth() &&
-         date1Date.getFullYear() === date2Date.getFullYear();
+    date1Date.getMonth() === date2Date.getMonth() &&
+    date1Date.getFullYear() === date2Date.getFullYear();
 }
 
 function getSongInformation(songName) {
@@ -157,7 +157,7 @@ function getNextDate(reference_date) {
   */
   for (let row = 1; row < ROSTER_VALUES.length; row++) {
     let date = ROSTER_VALUES[row][getColumnIndex(ROSTER_VALUES, "Date")];
-    
+
     if (new Date(date) > reference_date) {
       // If the date is a later date than today, then return this date
       return date;
@@ -220,10 +220,17 @@ function getServiceData(date) {
     songs.push(getSongInformation(relevantRow[getColumnIndex(ROSTER_VALUES, songColumn)]))
   })
 
+  let soundDeskStr = relevantRow[getColumnIndex(ROSTER_VALUES, "Sound Desk")];
+  let soundDeskPeople = []
+  if (soundDeskStr !== "") {
+    soundDeskPeople = soundDeskStr.split(", ");
+  }
+
   return {
     date: date,
     songs: songs,
     musicians: musicians,
+    soundDeskPeople: soundDeskPeople,
   }
 }
 
@@ -250,28 +257,28 @@ function generateMessage(serviceData) {
   const randomOpeningStatement = openingStatements[Math.floor(Math.random() * openingStatements.length)];
 
   let output = ""
-  output += 
-  `Hi all,\
+  output +=
+    `Hi all,\
   \n\n${randomOpeningStatement}\
   \n\nThe team:\n`;
   output += Object.entries(serviceData.musicians).map(([role, musos]) => `${role}: ${musos.join(", ")}`).join("\n");
 
   output += '\n\nThe songs (give them a good listen before the practice!):\n';
   output += serviceData.songs.map(songInformation => {
-      let songText = `- ${songInformation.name} (`;
-      if (songInformation.spotifyLink) {
-        songText += `Spotify: ${songInformation.spotifyLink}, `;
-      }
-      if (songInformation.chordChart) {
-        songText += `Chord sheet: ${songInformation.chordChart}, `;
-      }
-      if (songInformation.leadSheet) {
-        songText += `Lead sheet: ${songInformation.leadSheet}, `;
-      }
-      songText = songText.slice(0, -2);  // Remove ", " from end of the string
-      songText += ")";
-      return songText;
+    let songText = `- ${songInformation.name} (`;
+    if (songInformation.spotifyLink) {
+      songText += `Spotify: ${songInformation.spotifyLink}, `;
     }
+    if (songInformation.chordChart) {
+      songText += `Chord sheet: ${songInformation.chordChart}, `;
+    }
+    if (songInformation.leadSheet) {
+      songText += `Lead sheet: ${songInformation.leadSheet}, `;
+    }
+    songText = songText.slice(0, -2);  // Remove ", " from end of the string
+    songText += ")";
+    return songText;
+  }
   ).join("\n");
   if (output.toUpperCase().includes("JOSIAH")) {
     output += `\n\nWhat time would you all be free for a practice? I'm happy to host, but happy to meet wherever works best. I can print sheet music for anyone who needs.`;
@@ -280,7 +287,8 @@ function generateMessage(serviceData) {
   }
   output += `\n\nAs usual, meet at 7:30am on Sunday for set-up and a quick run through. Let me know if you have any questions!\
   \n\nIn Christ\
-  \nJosiah`;
+  \nJosiah\
+  \n\nNote: this email has been auto-generated.`;
 
   return output;
 }
@@ -311,16 +319,16 @@ function getEmailAddresses(volunteerName) {
   Output (Array): array containing email address of volunteer and optionally of their parent
   */
   const volunteerRowIndex = getIndexForValue(VOLUNTEERS_VALUES, "Name", volunteerName);
-  const volunteerEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex]["Email Address"];
+  const volunteerEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Email Address")];
   if (!volunteerEmailAddress) {
     throw new ReferenceError(`Volunteer ${volunteerName} has no email address listed!`);
   }
   const emailAddresses = [volunteerEmailAddress];
-  const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex]["Parent Email Address (if under 18)"];
+  const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Parent Email Address (if under 18)")];
   if (parentEmailAddress !== "") {
     emailAddresses.push(parentEmailAddress);
   }
-  
+
   return emailAddresses;
 }
 
@@ -337,32 +345,24 @@ function determineEmailParams(serviceData) {
   */
   const volunteers = [...new Set(
     Object.entries(serviceData.musicians).map(
-        ([role, names]) => names
-      ).flat()
-    )];
+      ([role, names]) => names
+    ).flat()
+  )];
 
-  const to = [];
-  const cc = [];
+  let to = [];
+  let cc = [];
 
   // Add Reece to cc
-  const reeceEmailAddress = VOLUNTEERS_VALUES[getIndexForValue(VOLUNTEERS_VALUES, "Name", "Reece")][getColumnIndex(VOLUNTEERS_VALUES, "Email Address")];
-  if (!reeceEmailAddress) {
-    throw new ReferenceError(`Reece has no email address listed!`);
-  }
-  cc.push(reeceEmailAddress);
+  cc = cc.concat(getEmailAddresses("Reece"));
 
-  // Add volunteers (and optionally their parents)
+  // Add volunteers (and their parents)
   volunteers.forEach(volunteerName => {
-    const volunteerRowIndex = getIndexForValue(VOLUNTEERS_VALUES, "Name", volunteerName);
-    const volunteerEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Email Address")];
-    if (!volunteerEmailAddress) {
-      throw new ReferenceError(`Volunteer ${volunteerName} has no email address listed!`);
-    }
-    to.push(volunteerEmailAddress);
-    const parentEmailAddress = VOLUNTEERS_VALUES[volunteerRowIndex][getColumnIndex(VOLUNTEERS_VALUES, "Parent Email Address (if under 18)")];
-    if (parentEmailAddress !== "" && !to.includes(parentEmailAddress)) {
-      cc.push(parentEmailAddress);
-    }
+    to = to.concat(getEmailAddresses(volunteerName));
+  });
+
+  // Add sound desk people to cc
+  serviceData.soundDeskPeople.forEach(soundDeskPerson => {
+    cc = cc.concat(getEmailAddresses(soundDeskPerson));
   });
 
   return {
