@@ -1,24 +1,13 @@
-
-const ROSTER_SHEET = SpreadsheetApp.openById("1qDBr-f0nwSOEFflm69edVUB6ZWKEbRP-DhmaaiNlSMY").getActiveSheet();
-const ROSTER_VALUES = ROSTER_SHEET.getDataRange().getValues();
-
-const VOLUNTEERS_SHEET = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Volunteers");
-const VOLUNTEERS_VALUES = VOLUNTEERS_SHEET.getDataRange().getValues();
-
-const SONGS_SHEET = SpreadsheetApp.openById("1H0PYp0vqvONNPEbMCN-whh_rBvKkZUlWBXMH5VcVrYM").getActiveSheet();
-const SONGS_VALUES = SONGS_SHEET.getDataRange().getValues();
-
 function onOpen() {
-  const authorizedUsers = ["josiahschuller@gmail.com"]
   const userEmail = Session.getActiveUser().getEmail();
 
   // Only display menu for authorised users
-  if (authorizedUsers.includes(userEmail)) {
-    let ui = SpreadsheetApp.getUi();
-    ui.createMenu('Josiah Magic')
-        .addItem('Generate weekly music email', 'generateWeeklyEmail')
-        .addItem('Update "Last time sung" values', 'updateLastTimeSung')
-        .addToUi();
+  if (AUTHORIZED_USERS.includes(userEmail)) {
+    SpreadsheetApp.getUi()
+      .createMenu('Josiah Magic')
+      .addItem('Generate weekly music email', 'generateWeeklyEmail')
+      .addItem('Update "Last time sung" values', 'updateLastTimeSung')
+      .addToUi();
   }
 }
 
@@ -28,22 +17,14 @@ function generateWeeklyEmail() {
 }
 
 function updateLastTimeSung() {
-  let ui = SpreadsheetApp.getUi();
-  let result = ui.prompt(
+  const ui = SpreadsheetApp.getUi();
+  const result = ui.prompt(
     "Enter date of Sunday to update the 'last time sung' for each song:",
     ui.ButtonSet.OK_CANCEL
   );
 
-  let button = result.getSelectedButton();
-  let text = result.getResponseText();
-  if (button == ui.Button.OK) {
-    let logs = updateTimesPerTimestamp(convertStringToDate(text));
+  if (result.getSelectedButton() === ui.Button.OK) {
+    const logs = updateTimesPerTimestamp(convertStringToDate(result.getResponseText()));
     ui.alert(logs);
   }
-}
-
-
-function processText(text) {
-    // Process the text from the sidebar as needed
-    Logger.log(text);
 }
