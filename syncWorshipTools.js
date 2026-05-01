@@ -54,3 +54,36 @@ function syncRosterToWorshipTools(dateString, bearerToken) {
 
   return logger.getLogs();
 }
+
+/**
+ * Syncs all Sundays that have a WorshipTools service ID in the roster sheet.
+ *
+ * @param {string} bearerToken - WorshipTools Bearer token (weAuthToken cookie).
+ * @returns {string} Human-readable summary of what was rostered and any errors.
+ */
+function syncAllRosterToWorshipTools(bearerToken) {
+  const logger = new MyLogger();
+
+  const dateColIndex = ROSTER_TABLE.getColumnIndex("Date");
+  const serviceIdColIndex = ROSTER_TABLE.getColumnIndex("WorshipTools ID");
+
+  const rowsWithServiceId = ROSTER_TABLE.values.filter(row => row[serviceIdColIndex]);
+
+  if (rowsWithServiceId.length === 0) {
+    return "No rows with a WorshipTools service ID found in the roster.";
+  }
+
+  rowsWithServiceId.forEach(row => {
+    const date = row[dateColIndex];
+    const dateString = Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yyyy");
+    logger.log(`\n--- Syncing ${dateString} ---`);
+    try {
+      const result = syncRosterToWorshipTools(dateString, bearerToken);
+      logger.log(result);
+    } catch (e) {
+      logger.log(`ERROR for ${dateString}: ${e.message}`);
+    }
+  });
+
+  return logger.getLogs();
+}

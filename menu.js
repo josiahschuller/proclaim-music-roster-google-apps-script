@@ -7,7 +7,8 @@ function onOpen() {
       .createMenu('Josiah Magic')
       .addItem('Generate weekly music email', 'generateWeeklyEmail')
       .addItem('Update "Last time sung" values', 'updateLastTimeSung')
-      .addItem('Sync roster to WorshipTools', 'syncToWorshipToolsMenu')
+      .addItem('Sync service to WorshipTools', 'syncToWorshipToolsMenu')
+      .addItem('Sync all services in roster to WorshipTools', 'syncAllToWorshipToolsMenu')
       .addToUi();
   }
 }
@@ -48,5 +49,19 @@ function syncToWorshipToolsMenu() {
   if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
 
   const summary = syncRosterToWorshipTools(dateResult.getResponseText().trim(), tokenResult.getResponseText().trim());
+  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+}
+
+function syncAllToWorshipToolsMenu() {
+  const ui = SpreadsheetApp.getUi();
+
+  const tokenResult = ui.prompt(
+    'Sync ALL services to WorshipTools',
+    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const summary = syncAllRosterToWorshipTools(tokenResult.getResponseText().trim());
   ui.alert('Sync complete', summary, ui.ButtonSet.OK);
 }
