@@ -75,7 +75,9 @@ function syncAllRosterToWorshipTools(bearerToken) {
 
   rowsWithServiceId.forEach(row => {
     const date = row[dateColIndex];
-    const dateString = Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yyyy");
+    const dateString = date instanceof Date
+      ? Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yyyy")
+      : String(date);
     logger.log(`\n--- Syncing ${dateString} ---`);
     try {
       const result = syncRosterToWorshipTools(dateString, bearerToken);
