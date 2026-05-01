@@ -67,7 +67,7 @@ function syncAllRosterToWorshipTools(bearerToken) {
   const dateColIndex = ROSTER_TABLE.getColumnIndex("Date");
   const serviceIdColIndex = ROSTER_TABLE.getColumnIndex("WorshipTools ID");
 
-  const rowsWithServiceId = ROSTER_TABLE.values.filter(row => row[serviceIdColIndex]);
+  const rowsWithServiceId = ROSTER_TABLE.values.slice(1).filter(row => row[serviceIdColIndex]);
 
   if (rowsWithServiceId.length === 0) {
     return "No rows with a WorshipTools service ID found in the roster.";
