@@ -10,7 +10,7 @@ const SENDER_EMAIL = "josiahschuller@gmail.com";
 const CC_RECIPIENTS = ["Reece"];
 
 // Service roles on the roster
-const MUSICIAN_ROLES = ["Singers", "Keys", "Guitar"];
+const MUSICIAN_ROLES = ["Singers", "Keys", "Guitar", "Bass", "Drums", "Ukulele"];
 const SONG_COLUMNS = ["Song 1", "Song 2", "Song 3", "Song 4", "Song 5"];
 
 // Authorised users for the custom menu

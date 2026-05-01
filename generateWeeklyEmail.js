@@ -95,15 +95,6 @@ function getServiceData(date) {
     roleMusiciansStr.split(", ").forEach(name => addMusician(musicians, role, name));
   });
 
-  const otherMusiciansStr = relevantRow[ROSTER_TABLE.getColumnIndex("Other")];
-  if (otherMusiciansStr) {
-    // Assumes format: "Role1: Name1, Role2: Name2, ..."
-    otherMusiciansStr.split(", ").forEach(roleMuso => {
-      const [role, name] = roleMuso.split(": ");
-      addMusician(musicians, role, name);
-    });
-  }
-
   const songs = [];
   SONG_COLUMNS.forEach(songColumn => {
     const songName = relevantRow[ROSTER_TABLE.getColumnIndex(songColumn)];
