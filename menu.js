@@ -9,6 +9,7 @@ function onOpen() {
       .addItem('Update "Last time sung" values', 'updateLastTimeSung')
       .addItem('Sync service to WorshipTools', 'syncToWorshipToolsMenu')
       .addItem('Sync all services in roster to WorshipTools', 'syncAllToWorshipToolsMenu')
+      .addItem('Sync songs to WorshipTools', 'syncSongsToWorshipToolsMenu')
       .addToUi();
   }
 }

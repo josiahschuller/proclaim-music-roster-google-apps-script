@@ -114,12 +114,46 @@ class WorshipToolsAPI {
   }
 
   /**
+   * Obtain a Firebase ID token by:
+   * 1. GET /config/firebase → { apiKey, ... }
+   * 2. GET /firebase/token  → { token: customToken }
+   * 3. Exchange customToken for an ID token via Firebase Auth REST API.
+   *
+   * @returns {string} A Firebase ID token suitable for Firestore REST calls.
+   */
+  _getFirebaseIdToken() {
+    const config = this._fetch(`${this.baseUrl}/config/firebase`, { method: 'GET' });
+    const apiKey = config.apiKey;
+    if (!apiKey) throw new Error('Firebase config missing apiKey');
+
+    const customToken = this._fetch(`${this.baseUrl}/firebase/token`, { method: 'GET' });
+    if (!customToken.token) throw new Error('Firebase token response missing token');
+
+    const authResponse = UrlFetchApp.fetch(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`,
+      {
+        method: 'POST',
+        contentType: 'application/json',
+        payload: JSON.stringify({ token: customToken.token, returnSecureToken: true }),
+        muteHttpExceptions: true,
+      }
+    );
+
+    const authStatus = authResponse.getResponseCode();
+    const authBody = JSON.parse(authResponse.getContentText());
+    if (authStatus < 200 || authStatus >= 300) {
+      throw new Error(`Firebase auth error ${authStatus}: ${JSON.stringify(authBody)}`);
+    }
+
+    return authBody.idToken;
+  }
+
+  /**
    * Replace all songs on a service's cuelist in Firestore.
    *
-   * PATCH https://firestore.googleapis.com/v1/projects/worship-extreme-datastore/...
-   *       /accounts/{accountId}/cuelists/{serviceId}
-   *
-   * The weAuthToken JWT also serves as a Firebase Bearer token for Firestore.
+   * Uses the WorshipTools API to obtain a Firebase ID token, then writes
+   * to Firestore via its REST API — mirroring what the web app does via
+   * firebaseService.saveServiceCues().
    *
    * @param {string} serviceId – UUID of the service (= cuelist document ID).
    * @param {Array<{worshipToolsId: string, displayName: string}>} songs
@@ -128,6 +162,8 @@ class WorshipToolsAPI {
    *   A fresh `cue_id` UUID is generated per cue.
    */
   syncSongsToService(serviceId, songs) {
+    const firebaseToken = this._getFirebaseIdToken();
+
     const project = 'worship-extreme-datastore';
     const docPath = `accounts/${this.accountId}/cuelists/${serviceId}`;
     const url = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/${docPath}`
@@ -200,7 +236,7 @@ class WorshipToolsAPI {
     const response = UrlFetchApp.fetch(url, {
       method:           'PATCH',
       contentType:      'application/json',
-      headers:          { 'Authorization': 'Bearer ' + this.token },
+      headers:          { 'Authorization': 'Bearer ' + firebaseToken },
       payload:          JSON.stringify(body),
       muteHttpExceptions: true,
     });
