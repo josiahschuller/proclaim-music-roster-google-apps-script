@@ -112,4 +112,102 @@ class WorshipToolsAPI {
       payload: JSON.stringify({}),
     });
   }
+
+  /**
+   * Replace all songs on a service's cuelist in Firestore.
+   *
+   * PATCH https://firestore.googleapis.com/v1/projects/worship-extreme-datastore/...
+   *       /accounts/{accountId}/cuelists/{serviceId}
+   *
+   * The weAuthToken JWT also serves as a Firebase Bearer token for Firestore.
+   *
+   * @param {string} serviceId – UUID of the service (= cuelist document ID).
+   * @param {Array<{worshipToolsId: string, displayName: string}>} songs
+   *   Each song's `worshipToolsId` is the value stored in SONGS_TABLE "WorshipTools ID"
+   *   column, which maps to `cue_foreground.text` in the Firestore document.
+   *   A fresh `cue_id` UUID is generated per cue.
+   */
+  syncSongsToService(serviceId, songs) {
+    const project = 'worship-extreme-datastore';
+    const docPath = `accounts/${this.accountId}/cuelists/${serviceId}`;
+    const url = `https://firestore.googleapis.com/v1/projects/${project}/databases/(default)/documents/${docPath}`
+      + '?updateMask.fieldPaths=data.cues&updateMask.fieldPaths=data.songMeta';
+
+    const cueValues = [];
+    const songMetaFields = {};
+
+    songs.forEach(({ worshipToolsId, displayName }) => {
+      const cueId = Utilities.getUuid();
+      cueValues.push({
+        mapValue: {
+          fields: {
+            cue_id:         { stringValue: cueId },
+            cue_type:       { stringValue: '' },
+            cue_name:       { stringValue: '' },
+            cue_transition: { stringValue: '0.25' },
+            cue_foreground: {
+              mapValue: {
+                fields: {
+                  type: { stringValue: 'text' },
+                  text: { stringValue: worshipToolsId },
+                },
+              },
+            },
+            cue_background: {
+              mapValue: {
+                fields: {
+                  type: { stringValue: '' },
+                  data: {
+                    mapValue: {
+                      fields: {
+                        inherit: { booleanValue: false },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            displayName: { stringValue: displayName },
+            cue_options: { mapValue: { fields: {} } },
+            length:      { integerValue: '0' },
+            apps:        { arrayValue: { values: [] } },
+          },
+        },
+      });
+      songMetaFields[cueId] = {
+        mapValue: {
+          fields: {
+            notes: { stringValue: '' },
+            key:   { stringValue: '' },
+          },
+        },
+      };
+    });
+
+    const body = {
+      fields: {
+        data: {
+          mapValue: {
+            fields: {
+              cues:     { arrayValue: { values: cueValues } },
+              songMeta: { mapValue: { fields: songMetaFields } },
+            },
+          },
+        },
+      },
+    };
+
+    const response = UrlFetchApp.fetch(url, {
+      method:           'PATCH',
+      contentType:      'application/json',
+      headers:          { 'Authorization': 'Bearer ' + this.token },
+      payload:          JSON.stringify(body),
+      muteHttpExceptions: true,
+    });
+
+    const status = response.getResponseCode();
+    if (status < 200 || status >= 300) {
+      throw new Error(`Firestore error ${status}: ${response.getContentText()}`);
+    }
+  }
 }
