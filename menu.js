@@ -7,6 +7,10 @@ function onOpen() {
       .createMenu('Josiah Magic')
       .addItem('Generate weekly music email', 'generateWeeklyEmail')
       .addItem('Update "Last time sung" values', 'updateLastTimeSung')
+      .addItem('Sync people to WorshipTools', 'syncToWorshipToolsMenu')
+      .addItem('MULTI: Sync people to WorshipTools', 'syncAllToWorshipToolsMenu')
+      .addItem('Sync songs to WorshipTools', 'syncSongsToWorshipToolsMenu')
+      .addItem('MULTI: Sync songs to WorshipTools', 'syncAllSongsToWorshipToolsMenu')
       .addToUi();
   }
 }
@@ -27,4 +31,90 @@ function updateLastTimeSung() {
     const logs = updateTimesPerTimestamp(convertStringToDate(result.getResponseText()));
     ui.alert(logs);
   }
+}
+
+function syncToWorshipToolsMenu() {
+  const ui = SpreadsheetApp.getUi();
+
+  const dateResult = ui.prompt(
+    'Sync people to WorshipTools',
+    'Enter the date of the Sunday to sync (DD/MM/YYYY):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const tokenResult = ui.prompt(
+    'Sync people to WorshipTools',
+    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const summary = syncRosterToWorshipTools(dateResult.getResponseText().trim(), tokenResult.getResponseText().trim());
+  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+}
+
+function syncAllToWorshipToolsMenu() {
+  const ui = SpreadsheetApp.getUi();
+
+  const dateResult = ui.prompt(
+    'MULTI: Sync people to WorshipTools',
+    'Enter a starting date to sync from (DD/MM/YYYY), or leave blank to sync all weeks:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const tokenResult = ui.prompt(
+    'MULTI: Sync people to WorshipTools',
+    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const startDate = dateResult.getResponseText().trim() || null;
+  const summary = syncAllRosterToWorshipTools(tokenResult.getResponseText().trim(), startDate);
+  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+}
+
+function syncSongsToWorshipToolsMenu() {
+  const ui = SpreadsheetApp.getUi();
+
+  const dateResult = ui.prompt(
+    'Sync songs to WorshipTools',
+    'Enter the date of the Sunday to sync (DD/MM/YYYY):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const tokenResult = ui.prompt(
+    'Sync songs to WorshipTools',
+    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const summary = syncSongsToWorshipTools(dateResult.getResponseText().trim(), tokenResult.getResponseText().trim());
+  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+}
+
+function syncAllSongsToWorshipToolsMenu() {
+  const ui = SpreadsheetApp.getUi();
+
+  const dateResult = ui.prompt(
+    'MULTI: Sync songs to WorshipTools',
+    'Enter a starting date to sync from (DD/MM/YYYY), or leave blank to sync all weeks:',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const tokenResult = ui.prompt(
+    'MULTI: Sync songs to WorshipTools',
+    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const startDate = dateResult.getResponseText().trim() || null;
+  const summary = syncAllSongsToWorshipTools(tokenResult.getResponseText().trim(), startDate);
+  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
 }
