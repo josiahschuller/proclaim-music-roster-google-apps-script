@@ -61,13 +61,22 @@ function syncRosterToWorshipTools(dateString, bearerToken) {
  * @param {string} bearerToken - WorshipTools Bearer token (weAuthToken cookie).
  * @returns {string} Human-readable summary of what was rostered and any errors.
  */
-function syncAllRosterToWorshipTools(bearerToken) {
+function syncAllRosterToWorshipTools(bearerToken, startDateString) {
   const logger = new MyLogger();
 
   const dateColIndex = ROSTER_TABLE.getColumnIndex("Date");
   const serviceIdColIndex = ROSTER_TABLE.getColumnIndex("WorshipTools ID");
 
-  const rowsWithServiceId = ROSTER_TABLE.values.slice(1).filter(row => row[serviceIdColIndex]);
+  const startDate = startDateString ? convertStringToDate(startDateString) : null;
+
+  const rowsWithServiceId = ROSTER_TABLE.values.slice(1).filter(row => {
+    if (!row[serviceIdColIndex]) return false;
+    if (startDate) {
+      const rowDate = row[dateColIndex] instanceof Date ? row[dateColIndex] : convertStringToDate(String(row[dateColIndex]));
+      return rowDate >= startDate;
+    }
+    return true;
+  });
 
   if (rowsWithServiceId.length === 0) {
     return "No rows with a WorshipTools service ID found in the roster.";
@@ -81,6 +90,44 @@ function syncAllRosterToWorshipTools(bearerToken) {
     logger.log(`\n--- Syncing ${dateString} ---`);
     try {
       const result = syncRosterToWorshipTools(dateString, bearerToken);
+      logger.log(result);
+    } catch (e) {
+      logger.log(`ERROR for ${dateString}: ${e.message}`);
+    }
+  });
+
+  return logger.getLogs();
+}
+
+function syncAllSongsToWorshipTools(bearerToken, startDateString) {
+  const logger = new MyLogger();
+
+  const dateColIndex = ROSTER_TABLE.getColumnIndex("Date");
+  const serviceIdColIndex = ROSTER_TABLE.getColumnIndex("WorshipTools ID");
+
+  const startDate = startDateString ? convertStringToDate(startDateString) : null;
+
+  const rowsWithServiceId = ROSTER_TABLE.values.slice(1).filter(row => {
+    if (!row[serviceIdColIndex]) return false;
+    if (startDate) {
+      const rowDate = row[dateColIndex] instanceof Date ? row[dateColIndex] : convertStringToDate(String(row[dateColIndex]));
+      return rowDate >= startDate;
+    }
+    return true;
+  });
+
+  if (rowsWithServiceId.length === 0) {
+    return "No rows with a WorshipTools service ID found in the roster.";
+  }
+
+  rowsWithServiceId.forEach(row => {
+    const date = row[dateColIndex];
+    const dateString = date instanceof Date
+      ? Utilities.formatDate(date, Session.getScriptTimeZone(), "dd/MM/yyyy")
+      : String(date);
+    logger.log(`\n--- Syncing songs for ${dateString} ---`);
+    try {
+      const result = syncSongsToWorshipTools(dateString, bearerToken);
       logger.log(result);
     } catch (e) {
       logger.log(`ERROR for ${dateString}: ${e.message}`);
