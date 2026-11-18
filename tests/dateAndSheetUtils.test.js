@@ -71,14 +71,18 @@ test('bulk sync row selection filters by service ID and start date', () => {
     ['Date', 'WorshipTools ID'],
     ['02/02/2025', 'service-old'],
     ['09/02/2025', 'service-next'],
-    ['16/02/2025', ''],
+    ['16/02/2025', 'service-later'],
+    ['23/02/2025', ''],
   ];
   const sheet = { getDataRange: () => ({ getValues: () => values }) };
   const apps = loadAppsScript(['config.js', 'dateUtils.js', 'sheetUtils.js', 'myLogger.js', 'syncWorshipTools.js'], {
     SpreadsheetApp: { openById: () => ({ getActiveSheet: () => sheet }), getActiveSpreadsheet: () => ({ getSheetByName: () => sheet }) },
   });
-  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync("09/02/2025")'), row => row[1]), ['service-next']);
-  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync(null)'), row => row[1]), ['service-old', 'service-next']);
+  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync("09/02/2025")'), row => row[1]), ['service-next', 'service-later']);
+  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync(null)'), row => row[1]), ['service-old', 'service-next', 'service-later']);
+  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync(null, "09/02/2025")'), row => row[1]), ['service-old', 'service-next']);
+  assert.deepEqual(Array.from(apps.evaluate('getRosterRowsForSync("09/02/2025", "09/02/2025")'), row => row[1]), ['service-next']);
+  assert.throws(() => apps.evaluate('getRosterRowsForSync("16/02/2025", "09/02/2025")'), /later than the start date/);
 });
 
 test('email recipients are deduplicated and To takes precedence over Cc', () => {

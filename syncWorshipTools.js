@@ -1,20 +1,28 @@
-/** Return roster rows with a service ID on or after an optional start date. */
-function getRosterRowsForSync(startDateString) {
+/** Return roster rows with a service ID inside an optional inclusive date range. */
+function getRosterRowsForSync(startDateString, endDateString) {
   const dateIndex = ROSTER_TABLE.getColumnIndex('Date');
   const serviceIdIndex = ROSTER_TABLE.getColumnIndex('WorshipTools ID');
   const startDate = startDateString ? parseDateString(startDateString) : null;
+  const endDate = endDateString ? parseDateString(endDateString) : null;
+  if (startDate && endDate && endDate < startDate) {
+    throw new RangeError('End date must be the same as or later than the start date.');
+  }
 
   return ROSTER_TABLE.values.slice(1).filter(row => {
     if (!row[serviceIdIndex]) return false;
-    if (!startDate) return true;
-    const rowDate = row[dateIndex] instanceof Date ? row[dateIndex] : parseDateString(String(row[dateIndex]));
-    return new Date(rowDate.getFullYear(), rowDate.getMonth(), rowDate.getDate()) >= startDate;
+    const value = row[dateIndex];
+    const rowDate = value instanceof Date
+      ? new Date(value.getFullYear(), value.getMonth(), value.getDate())
+      : parseDateString(String(value));
+    if (startDate && rowDate < startDate) return false;
+    if (endDate && rowDate > endDate) return false;
+    return true;
   });
 }
 
-function syncAllWorshipToolsRows(bearerToken, startDateString, label, syncFunction) {
+function syncAllWorshipToolsRows(bearerToken, startDateString, endDateString, label, syncFunction) {
   const logger = new MyLogger();
-  const rows = getRosterRowsForSync(startDateString);
+  const rows = getRosterRowsForSync(startDateString, endDateString);
   if (rows.length === 0) return 'No rows with a WorshipTools service ID found in the roster.';
 
   const dateIndex = ROSTER_TABLE.getColumnIndex('Date');
@@ -71,12 +79,12 @@ function syncRosterToWorshipTools(dateString, bearerToken) {
   return logger.getLogs();
 }
 
-function syncAllRosterToWorshipTools(bearerToken, startDateString) {
-  return syncAllWorshipToolsRows(bearerToken, startDateString, 'people for', syncRosterToWorshipTools);
+function syncAllRosterToWorshipTools(bearerToken, startDateString, endDateString) {
+  return syncAllWorshipToolsRows(bearerToken, startDateString, endDateString, 'people for', syncRosterToWorshipTools);
 }
 
-function syncAllSongsToWorshipTools(bearerToken, startDateString) {
-  return syncAllWorshipToolsRows(bearerToken, startDateString, 'songs for', syncSongsToWorshipTools);
+function syncAllSongsToWorshipTools(bearerToken, startDateString, endDateString) {
+  return syncAllWorshipToolsRows(bearerToken, startDateString, endDateString, 'songs for', syncSongsToWorshipTools);
 }
 
 /** Replace the songs on a service cuelist with the rostered songs. */

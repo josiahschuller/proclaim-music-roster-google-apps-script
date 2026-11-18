@@ -42,8 +42,30 @@ function promptSyncInputs(ui, title, allowBlankDate) {
     return null;
   }
 
+  let endDate = null;
+  if (allowBlankDate) {
+    const endDateText = promptText(ui, title, 'Enter an end date (DD/MM/YYYY), or leave blank for no end date:');
+    if (endDateText === null) return null;
+    if (endDateText) {
+      try {
+        endDate = parseDateString(endDateText);
+      } catch (error) {
+        ui.alert(error.message);
+        return null;
+      }
+      if (date && endDate < date) {
+        ui.alert('The end date must be the same as or later than the start date.');
+        return null;
+      }
+    }
+  }
+
   const token = promptText(ui, title, 'Enter your WorshipTools Bearer token (weAuthToken cookie):');
-  return token === null ? null : { dateText: date ? formatDateString(date) : null, token };
+  return token === null ? null : {
+    dateText: date ? formatDateString(date) : null,
+    endDateText: endDate ? formatDateString(endDate) : null,
+    token,
+  };
 }
 
 function generateWeeklyEmail() {
@@ -90,7 +112,7 @@ function runBulkSyncMenu(title, syncFunction) {
   const inputs = promptSyncInputs(ui, title, true);
   if (!inputs) return;
   if (syncFunction === syncAllSongsToWorshipTools && !confirmSongReplacement(ui)) return;
-  ui.alert('Sync complete', syncFunction(inputs.token, inputs.dateText), ui.ButtonSet.OK);
+  ui.alert('Sync complete', syncFunction(inputs.token, inputs.dateText, inputs.endDateText), ui.ButtonSet.OK);
 }
 
 function confirmSongReplacement(ui) {
