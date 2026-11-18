@@ -117,9 +117,9 @@ function getSongInformation(songName) {
 
   return {
     name: songName,
-    spotifyLink: shorten_link(songRow[SONGS_TABLE.getColumnIndex("Spotify")]),
-    chordChart: shorten_link(songRow[SONGS_TABLE.getColumnIndex("Chord chart")]),
-    leadSheet: shorten_link(songRow[SONGS_TABLE.getColumnIndex("Lead sheet")]),
+    spotifyLink: shortenLink(songRow[SONGS_TABLE.getColumnIndex("Spotify")]),
+    chordChart: shortenLink(songRow[SONGS_TABLE.getColumnIndex("Chord chart")]),
+    leadSheet: shortenLink(songRow[SONGS_TABLE.getColumnIndex("Lead sheet")]),
   };
 }
 
