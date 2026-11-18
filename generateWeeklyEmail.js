@@ -6,7 +6,9 @@ function test_weekly_email_stuff() {
 }
 
 function sendEmailIfNotAlreadySent() {
-  const nextSundayDate = getNextDate(new Date());
+  const referenceDate = new Date();
+  referenceDate.setDate(referenceDate.getDate() + 7);
+  const nextSundayDate = getNextDate(referenceDate);
   if (!checkIfEmailAlreadySent(nextSundayDate)) {
     const result = generateAndSendWeeklyEmail(nextSundayDate);
     if (result === "Sent email successfully!") {
