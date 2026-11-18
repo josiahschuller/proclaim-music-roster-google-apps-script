@@ -186,11 +186,11 @@ function determineEmailParams(serviceData) {
     Object.values(serviceData.musicians).flat()
   )];
 
-  const to = volunteers.flatMap(name => getEmailAddresses(name));
-  const cc = [
+  const to = [...new Set(volunteers.flatMap(name => getEmailAddresses(name)))];
+  const cc = [...new Set([
     ...CC_RECIPIENTS.flatMap(name => getEmailAddresses(name)),
     ...serviceData.soundDeskPeople.flatMap(name => getEmailAddresses(name)),
-  ];
+  ])].filter(address => !to.includes(address));
 
   return {
     to,

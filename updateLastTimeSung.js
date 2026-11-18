@@ -17,11 +17,7 @@ function setLastTimeSung(song, lastTimeSung) {
 }
 
 function convertStringToDate(dateString) {
-  const parts = dateString.split("/");
-  const day = parseInt(parts[0], 10);
-  const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JavaScript Date
-  const year = parseInt(parts[2], 10);
-  return new Date(year, month, day);
+  return parseDateString(dateString);
 }
 
 function updateTimesPerTimestamp(timestamp) {

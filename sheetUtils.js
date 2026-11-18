@@ -32,8 +32,9 @@ class SheetTable {
   }
 
   getIndexForValue(columnName, value) {
+    const columnIndex = this.getColumnIndex(columnName);
     const equalityFn = columnName === "Date" ? areDatesEqual : (x, y) => x === y;
-    const idx = this.values.findIndex(row => equalityFn(row[this.getColumnIndex(columnName)], value));
+    const idx = this.values.findIndex(row => equalityFn(row[columnIndex], value));
     if (idx === -1) {
       throw new ReferenceError(`No value with the name ${value} found in column ${columnName}`);
     }
@@ -46,6 +47,11 @@ class SheetTable {
 
   setCell(row, col, value) {
     this.sheet.getRange(row + 1, col + 1).setValue(value);
+    if (this._values) this._values[row][col] = value;
+  }
+
+  invalidateCache() {
+    this._values = null;
   }
 }
 

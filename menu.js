@@ -1,146 +1,102 @@
 function onOpen() {
   const userEmail = Session.getActiveUser().getEmail();
+  if (!AUTHORIZED_USERS.includes(userEmail)) return;
 
-  // Only display menu for authorised users
-  if (AUTHORIZED_USERS.includes(userEmail)) {
-    SpreadsheetApp.getUi()
-      .createMenu('Josiah Magic')
-      .addItem('Generate weekly music email', 'generateWeeklyEmail')
-      .addItem('Update "Last time sung" values', 'updateLastTimeSung')
-      .addItem('Sync people to WorshipTools', 'syncToWorshipToolsMenu')
-      .addItem('MULTI: Sync people to WorshipTools', 'syncAllToWorshipToolsMenu')
-      .addItem('Sync songs to WorshipTools', 'syncSongsToWorshipToolsMenu')
-      .addItem('MULTI: Sync songs to WorshipTools', 'syncAllSongsToWorshipToolsMenu')
-      .addToUi();
+  SpreadsheetApp.getUi()
+    .createMenu('Josiah Magic')
+    .addItem('Generate weekly music email', 'generateWeeklyEmail')
+    .addItem('Update "Last time sung" values', 'updateLastTimeSung')
+    .addItem('Sync people to WorshipTools', 'syncToWorshipToolsMenu')
+    .addItem('MULTI: Sync people to WorshipTools', 'syncAllToWorshipToolsMenu')
+    .addItem('Sync songs to WorshipTools', 'syncSongsToWorshipToolsMenu')
+    .addItem('MULTI: Sync songs to WorshipTools', 'syncAllSongsToWorshipToolsMenu')
+    .addToUi();
+}
+
+function promptText(ui, title, message) {
+  const result = ui.prompt(title, message, ui.ButtonSet.OK_CANCEL);
+  return result.getSelectedButton() === ui.Button.OK ? result.getResponseText().trim() : null;
+}
+
+function promptSyncInputs(ui, title, allowBlankDate) {
+  const datePrompt = allowBlankDate
+    ? 'Enter a starting date (DD/MM/YYYY), or leave blank to sync all weeks:'
+    : 'Enter the date of the Sunday to sync (DD/MM/YYYY):';
+  const dateText = promptText(ui, title, datePrompt);
+  if (dateText === null) return null;
+
+  let date = null;
+  if (dateText) {
+    try {
+      date = parseDateString(dateText);
+    } catch (error) {
+      ui.alert(error.message);
+      return null;
+    }
+    if (!allowBlankDate && !isSunday(date)) {
+      ui.alert('Please enter a valid Sunday date in DD/MM/YYYY format.');
+      return null;
+    }
+  } else if (!allowBlankDate) {
+    ui.alert('A date is required.');
+    return null;
   }
+
+  const token = promptText(ui, title, 'Enter your WorshipTools Bearer token (weAuthToken cookie):');
+  return token === null ? null : { dateText: date ? formatDateString(date) : null, token };
 }
 
 function generateWeeklyEmail() {
   const ui = SpreadsheetApp.getUi();
-  const dateResult = ui.prompt(
-    "Generate weekly music email",
-    "Enter the date of the Sunday to generate the email for (DD/MM/YYYY):",
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const dateString = dateResult.getResponseText().trim();
-  const dateParts = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (!dateParts) {
-    ui.alert("Please enter a valid Sunday date in DD/MM/YYYY format.");
-    return;
+  const dateText = promptText(ui, 'Generate weekly music email', 'Enter the date of the Sunday to generate the email for (DD/MM/YYYY):');
+  if (dateText === null) return;
+  try {
+    const date = parseDateString(dateText);
+    if (!isSunday(date)) throw new RangeError('Please enter a valid Sunday date in DD/MM/YYYY format.');
+    ui.alert(generateAndSendWeeklyEmail(date));
+  } catch (error) {
+    ui.alert(error.message);
   }
-
-  const sundayDate = convertStringToDate(dateString);
-  const [day, month, year] = dateParts.slice(1).map(Number);
-  if (
-    sundayDate.getDate() !== day ||
-    sundayDate.getMonth() !== month - 1 ||
-    sundayDate.getFullYear() !== year ||
-    sundayDate.getDay() !== 0
-  ) {
-    ui.alert("Please enter a valid Sunday date in DD/MM/YYYY format.");
-    return;
-  }
-
-  ui.alert(generateAndSendWeeklyEmail(sundayDate));
 }
 
 function updateLastTimeSung() {
   const ui = SpreadsheetApp.getUi();
-  const result = ui.prompt(
-    "Enter date of Sunday to update the 'last time sung' for each song:",
-    ui.ButtonSet.OK_CANCEL
-  );
-
-  if (result.getSelectedButton() === ui.Button.OK) {
-    const logs = updateTimesPerTimestamp(convertStringToDate(result.getResponseText()));
-    ui.alert(logs);
+  const dateText = promptText(ui, 'Update last time sung', 'Enter date of Sunday (DD/MM/YYYY):');
+  if (dateText === null) return;
+  try {
+    const date = parseDateString(dateText);
+    if (!isSunday(date)) throw new RangeError('Please enter a valid Sunday date in DD/MM/YYYY format.');
+    ui.alert(updateTimesPerTimestamp(date));
+  } catch (error) {
+    ui.alert(error.message);
   }
 }
 
-function syncToWorshipToolsMenu() {
+function syncToWorshipToolsMenu() { runSingleSyncMenu('Sync people to WorshipTools', syncRosterToWorshipTools); }
+function syncSongsToWorshipToolsMenu() { runSingleSyncMenu('Sync songs to WorshipTools', syncSongsToWorshipTools); }
+function syncAllToWorshipToolsMenu() { runBulkSyncMenu('MULTI: Sync people to WorshipTools', syncAllRosterToWorshipTools); }
+function syncAllSongsToWorshipToolsMenu() { runBulkSyncMenu('MULTI: Sync songs to WorshipTools', syncAllSongsToWorshipTools); }
+
+function runSingleSyncMenu(title, syncFunction) {
   const ui = SpreadsheetApp.getUi();
-
-  const dateResult = ui.prompt(
-    'Sync people to WorshipTools',
-    'Enter the date of the Sunday to sync (DD/MM/YYYY):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const tokenResult = ui.prompt(
-    'Sync people to WorshipTools',
-    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const summary = syncRosterToWorshipTools(dateResult.getResponseText().trim(), tokenResult.getResponseText().trim());
-  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+  const inputs = promptSyncInputs(ui, title, false);
+  if (!inputs) return;
+  if (syncFunction === syncSongsToWorshipTools && !confirmSongReplacement(ui)) return;
+  ui.alert('Sync complete', syncFunction(inputs.dateText, inputs.token), ui.ButtonSet.OK);
 }
 
-function syncAllToWorshipToolsMenu() {
+function runBulkSyncMenu(title, syncFunction) {
   const ui = SpreadsheetApp.getUi();
-
-  const dateResult = ui.prompt(
-    'MULTI: Sync people to WorshipTools',
-    'Enter a starting date to sync from (DD/MM/YYYY), or leave blank to sync all weeks:',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const tokenResult = ui.prompt(
-    'MULTI: Sync people to WorshipTools',
-    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const startDate = dateResult.getResponseText().trim() || null;
-  const summary = syncAllRosterToWorshipTools(tokenResult.getResponseText().trim(), startDate);
-  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+  const inputs = promptSyncInputs(ui, title, true);
+  if (!inputs) return;
+  if (syncFunction === syncAllSongsToWorshipTools && !confirmSongReplacement(ui)) return;
+  ui.alert('Sync complete', syncFunction(inputs.token, inputs.dateText), ui.ButtonSet.OK);
 }
 
-function syncSongsToWorshipToolsMenu() {
-  const ui = SpreadsheetApp.getUi();
-
-  const dateResult = ui.prompt(
-    'Sync songs to WorshipTools',
-    'Enter the date of the Sunday to sync (DD/MM/YYYY):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const tokenResult = ui.prompt(
-    'Sync songs to WorshipTools',
-    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const summary = syncSongsToWorshipTools(dateResult.getResponseText().trim(), tokenResult.getResponseText().trim());
-  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
-}
-
-function syncAllSongsToWorshipToolsMenu() {
-  const ui = SpreadsheetApp.getUi();
-
-  const dateResult = ui.prompt(
-    'MULTI: Sync songs to WorshipTools',
-    'Enter a starting date to sync from (DD/MM/YYYY), or leave blank to sync all weeks:',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const tokenResult = ui.prompt(
-    'MULTI: Sync songs to WorshipTools',
-    'Enter your WorshipTools Bearer token (weAuthToken cookie):',
-    ui.ButtonSet.OK_CANCEL
-  );
-  if (tokenResult.getSelectedButton() !== ui.Button.OK) return;
-
-  const startDate = dateResult.getResponseText().trim() || null;
-  const summary = syncAllSongsToWorshipTools(tokenResult.getResponseText().trim(), startDate);
-  ui.alert('Sync complete', summary, ui.ButtonSet.OK);
+function confirmSongReplacement(ui) {
+  return ui.alert(
+    'Replace WorshipTools songs?',
+    'This replaces the existing song list on each selected service. Continue?',
+    ui.ButtonSet.YES_NO
+  ) === ui.Button.YES;
 }
