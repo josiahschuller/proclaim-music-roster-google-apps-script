@@ -3,6 +3,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '../..');
+const APPS_SCRIPT_DIR = path.join(ROOT, 'src');
 
 /** Load Apps Script source into an isolated VM with injectable Google service mocks. */
 function loadAppsScript(files, services = {}) {
@@ -17,7 +18,7 @@ function loadAppsScript(files, services = {}) {
   });
 
   for (const file of files) {
-    const filename = path.join(ROOT, file);
+    const filename = path.join(APPS_SCRIPT_DIR, file);
     vm.runInContext(fs.readFileSync(filename, 'utf8'), context, { filename });
   }
 

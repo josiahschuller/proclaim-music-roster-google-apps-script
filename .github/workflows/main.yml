@@ -34,5 +34,5 @@ jobs:
         env:
           CLASP_SCRIPT_ID: ${{ secrets.CLASP_SCRIPT_ID }}
         run: |
-          echo '{"scriptId": "'$CLASP_SCRIPT_ID'"}' > .clasp.json
+          echo '{"scriptId": "'$CLASP_SCRIPT_ID'", "rootDir": "src"}' > .clasp.json
           clasp push
