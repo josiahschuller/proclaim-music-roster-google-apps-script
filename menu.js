@@ -16,8 +16,34 @@ function onOpen() {
 }
 
 function generateWeeklyEmail() {
-  SpreadsheetApp.getUi()
-    .alert(generateAndSendWeeklyEmail());
+  const ui = SpreadsheetApp.getUi();
+  const dateResult = ui.prompt(
+    "Generate weekly music email",
+    "Enter the date of the Sunday to generate the email for (DD/MM/YYYY):",
+    ui.ButtonSet.OK_CANCEL
+  );
+  if (dateResult.getSelectedButton() !== ui.Button.OK) return;
+
+  const dateString = dateResult.getResponseText().trim();
+  const dateParts = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!dateParts) {
+    ui.alert("Please enter a valid Sunday date in DD/MM/YYYY format.");
+    return;
+  }
+
+  const sundayDate = convertStringToDate(dateString);
+  const [day, month, year] = dateParts.slice(1).map(Number);
+  if (
+    sundayDate.getDate() !== day ||
+    sundayDate.getMonth() !== month - 1 ||
+    sundayDate.getFullYear() !== year ||
+    sundayDate.getDay() !== 0
+  ) {
+    ui.alert("Please enter a valid Sunday date in DD/MM/YYYY format.");
+    return;
+  }
+
+  ui.alert(generateAndSendWeeklyEmail(sundayDate));
 }
 
 function updateLastTimeSung() {

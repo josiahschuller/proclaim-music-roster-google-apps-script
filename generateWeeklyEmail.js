@@ -1,5 +1,5 @@
 function test_weekly_email_stuff() {
-  const nextSundayDate = getNextDate(new Date());
+  const nextSundayDate = getNextDate(new Date(2026, 5, 5));
   const serviceData = getServiceData(nextSundayDate);
   const emailMessage = generateMessage(serviceData);
   Logger.log(emailMessage);
@@ -8,8 +8,12 @@ function test_weekly_email_stuff() {
 function sendEmailIfNotAlreadySent() {
   const nextSundayDate = getNextDate(new Date());
   if (!checkIfEmailAlreadySent(nextSundayDate)) {
-    generateAndSendWeeklyEmail();
-    logEmailSent(nextSundayDate);
+    const result = generateAndSendWeeklyEmail(nextSundayDate);
+    if (result === "Sent email successfully!") {
+      logEmailSent(nextSundayDate);
+    } else {
+      Logger.log(`Weekly email was not sent: ${result}`);
+    }
   } else {
     Logger.log("Already sent for this Sunday");
   }
@@ -30,14 +34,12 @@ function logEmailSent(nextSundayDate) {
   EMAIL_SENDS_TABLE.sheet.getRange(TOP_ROW, 1, 1, 2).setValues([[nextSundayDate, new Date()]]);
 }
 
-function generateAndSendWeeklyEmail() {
+function generateAndSendWeeklyEmail(sundayDate) {
   /*
   This is the main function that is called automatically once per week
   */
-  const today = new Date();
   try {
-    const nextSundayDate = getNextDate(today);
-    const serviceData = getServiceData(nextSundayDate);
+    const serviceData = getServiceData(sundayDate);
     const emailParams = determineEmailParams(serviceData);
     sendEmail(emailParams.to, emailParams.cc, emailParams.subject, emailParams.message);
     return "Sent email successfully!";
