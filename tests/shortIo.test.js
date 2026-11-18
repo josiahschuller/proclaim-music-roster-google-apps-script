@@ -47,7 +47,6 @@ test('shortenLink reports API failures and missing Short.io domains', () => {
     apiKey: 'test-api-key',
     domain: 'example.short.gy',
     fetch: () => ({ getResponseCode: () => 401, getContentText: () => 'unauthorized' }),
-    Logger: { log: message => errors.push(message) },
   });
   assert.equal(failing.evaluate('shortenLink("https://example.com")'), null);
   assert.match(failing.logs[0], /Short.io API error 401/);

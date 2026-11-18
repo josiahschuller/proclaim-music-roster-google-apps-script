@@ -2,6 +2,12 @@
   "name": "proclaim-music-roster-google-apps-script",
   "private": true,
   "scripts": {
+    "lint": "eslint . --max-warnings=0",
     "test": "node --test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.15.0",
+    "globals": "^17.14.0"
   }
 }
