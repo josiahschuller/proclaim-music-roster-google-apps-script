@@ -1,0 +1,7 @@
+{
+  "name": "proclaim-music-roster-google-apps-script",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
